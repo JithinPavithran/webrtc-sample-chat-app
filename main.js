@@ -83,7 +83,7 @@ peerConnection.addEventListener('icecandidate', event => {
 
 peerConnection.addEventListener('connectionstatechange', event => {
     if (peerConnection.connectionState === 'connected') {
-        log('connected');
+        log('Connected');
     }
 });
 
