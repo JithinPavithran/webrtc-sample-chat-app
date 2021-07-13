@@ -1,4 +1,10 @@
-/* >>>> Simulating Signal Server using Broadcast Channel
+// >>>> Utilities
+const log = async function(msg) {
+    document.getElementById('log').innerHTML += msg + '<br/>';
+}
+// <<<< Utilities
+
+/* >>>> Simulating Signaling Server using Broadcast Channel
  * You can send messages using signalServer.send(type, content)
  * and set on receive handler usin signalServer.onreceive(type, handlerFunction)
  */
@@ -14,7 +20,7 @@ signalServer.send = async function(type, content) {
 signalServer.onReceive = async function(type, handler) {
     rcvdHandler[type] = handler;
 };
-// <<<< Simulating Signal Server
+// <<<< Simulating Signaling Server
 
 
 // Create PeerConnection Object
@@ -30,35 +36,37 @@ peerConnection.addEventListener('datachannel', event => {
     // Save the receive data channel - you receive your messages using this channel
     const recvChannel = event.channel;
     recvChannel.addEventListener('message', event => {
-        console.log(event);
         alert(event.data);
     })    
 });
 
 
-// Listen to offers send by Signal Server
+// Listen to offers send by Signaling Server
 signalServer.onReceive('offer', async function(offer) {
-    // When the offer is received, save it as remote description
+    log('Offer received from Signaling Server');
     peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(offer)));
-    // Then create an answer
+    log('Offer set as the remote description');
     const answer = await peerConnection.createAnswer();
-    // Set the answer as local description
+    log('Answer created locally');
     await peerConnection.setLocalDescription(answer);
-    // Send the answer back to Signal Server
+    log('Answer set as the local description');
     signalServer.send('answer', JSON.stringify(answer));
+    log('Answer sent to Signaling Server');
 });
 
 // Listen to answers
 signalServer.onReceive('answer', async function(answer) {
-    // save the answer as remote description
+    log('Answer received');
     await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(answer)));
+    log('Answer set as the remote description');
 });
 
 // Listen to icecandidates sent by remote
 signalServer.onReceive('icecandidate', async function(iceCandidate) {
+    log('icecandidate received from Signaling Server');
     try {
-        // Add the icecandidate
         await peerConnection.addIceCandidate(JSON.parse(iceCandidate));
+        log('icecandidate added to the peer connection');
     } catch (e) {
         console.error('Error adding received ice candidate', e);
     }
@@ -67,21 +75,26 @@ signalServer.onReceive('icecandidate', async function(iceCandidate) {
 // When an icecandidate is created locally, save it
 peerConnection.addEventListener('icecandidate', event => {
     if (event.candidate) {
+        log('icecandidate created locally');
         signalServer.send('icecandidate', JSON.stringify(event.candidate));
+        log('icecandidate sent to Signaling Server');
     }
 });
 
 peerConnection.addEventListener('connectionstatechange', event => {
     if (peerConnection.connectionState === 'connected') {
-        console.log('connected');
+        log('connected');
     }
 });
 
 // Initiate connection
 const connect = async function() {
     const offer = await peerConnection.createOffer();
+    log('Offer created locally');
     await peerConnection.setLocalDescription(offer);
+    log('Offer set as the local description');
     signalServer.send('offer', JSON.stringify(offer));
+    log('Offer sent to Signaling Server');
 };
 
 // Send message
